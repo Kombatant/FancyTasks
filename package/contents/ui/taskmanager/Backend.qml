@@ -285,12 +285,214 @@ QtObject {
         return _parseDesktopActions(content);
     }
 
+    // --- Places actions (for file managers) ---
+
+    // Cache: { "applications:org.kde.dolphin.desktop": [ {text, icon, exec}, ... ] or null (in-flight) }
+    property var _placesCache: ({})
+    property var _placesCacheTime: ({})
+    property var _placesPending: ({})
+    property var _fileManagerCache: ({}) // storageId -> true/false/null(in-flight)
+
+    readonly property P5Support.DataSource _placesReader: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            var stdout = (data["stdout"] || "").trim();
+            var key = backend._placesPending[source];
+            if (key !== undefined) {
+                delete backend._placesPending[source];
+                var results = [];
+                if (stdout) {
+                    var lines = stdout.split("\n");
+                    for (var i = 0; i < lines.length; i++) {
+                        var parts = lines[i].split("\t");
+                        if (parts.length < 3) continue;
+                        var icon = parts[0] || "folder";
+                        var title = parts[1];
+                        var href = parts[2];
+                        results.push({
+                            text: title,
+                            icon: icon,
+                            exec: "xdg-open '" + href.replace(/'/g, "'\\''") + "'"
+                        });
+                    }
+                }
+                backend._placesCache[key] = results;
+                backend._placesCacheTime[key] = Date.now();
+            }
+            disconnectSource(source);
+        }
+    }
+
+    function _isFileManager(launcherUrl) {
+        if (!launcherUrl) return false;
+        var key = launcherUrl.toString();
+        var content = _desktopFileCache[key];
+        if (!content) {
+            cacheDesktopFile(launcherUrl);
+            return false;
+        }
+        var lines = content.split("\n");
+        var inEntry = false;
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line === "[Desktop Entry]") { inEntry = true; continue; }
+            if (line.startsWith("[") && inEntry) break;
+            if (inEntry && line.startsWith("Categories=")) {
+                return line.indexOf("FileManager") !== -1;
+            }
+        }
+        return false;
+    }
+
+    function _queryPlaces(cacheKey) {
+        _placesCache[cacheKey] = null;
+        var xbelPath = _recentDocsDbPath().replace(
+            "/kactivitymanagerd/resources/database",
+            "/user-places.xbel");
+        var cmd = "python3 -c \""
+            + "import xml.etree.ElementTree as ET\\n"
+            + "tree = ET.parse('" + xbelPath.replace(/'/g, "'\\''") + "')\\n"
+            + "ns = {'bookmark': 'http://www.freedesktop.org/standards/desktop-bookmarks'}\\n"
+            + "for bm in tree.findall('.//bookmark'):\\n"
+            + "    href = bm.get('href', '')\\n"
+            + "    if not href.startswith('file://'): continue\\n"
+            + "    title = bm.findtext('title', '')\\n"
+            + "    icon_el = bm.find('.//bookmark:icon', ns)\\n"
+            + "    icon = icon_el.get('name', '') if icon_el is not None else 'folder'\\n"
+            + "    hidden = bm.findtext('.//{http://www.kde.org}IsHidden', 'false')\\n"
+            + "    if hidden != 'true':\\n"
+            + "        print(f'{icon}\\\\t{title}\\\\t{href}')\\n"
+            + "\"";
+        _placesPending[cmd] = cacheKey;
+        _placesReader.connectSource(cmd);
+    }
+
     function placesActions(launcherUrl, showAllPlaces, parent) {
-        return [];
+        if (!launcherUrl) return [];
+
+        if (!_isFileManager(launcherUrl)) return [];
+
+        var cacheKey = launcherUrl.toString();
+        var cached = _placesCache[cacheKey];
+        var cacheTime = _placesCacheTime[cacheKey] || 0;
+        var stale = (Date.now() - cacheTime) > 60000; // refresh every 60s
+
+        if (cached === undefined || (cached !== null && stale)) {
+            _queryPlaces(cacheKey);
+            return [];
+        }
+        if (cached === null) return []; // in-flight
+
+        if (!showAllPlaces && cached.length > 7) {
+            return cached.slice(0, 5);
+        }
+        return cached;
+    }
+
+    // --- Recent document actions ---
+
+    // Cache: { "org.kde.dolphin": [ {text, icon, exec}, ... ] or null (in-flight) }
+    property var _recentDocsCache: ({})
+    // Timestamp of last query per agent, to allow periodic refresh
+    property var _recentDocsCacheTime: ({})
+
+    readonly property P5Support.DataSource _recentDocsReader: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: function(source, data) {
+            var stdout = (data["stdout"] || "").trim();
+            var agent = backend._recentDocsPending[source];
+            if (agent !== undefined) {
+                delete backend._recentDocsPending[source];
+                var results = [];
+                if (stdout) {
+                    var lines = stdout.split("\n");
+                    for (var i = 0; i < lines.length; i++) {
+                        var path = lines[i].trim();
+                        if (!path) continue;
+                        var fileName = path.substring(path.lastIndexOf("/") + 1);
+                        // Determine icon from mime by extension
+                        var icon = "document-open-recent";
+                        results.push({
+                            text: fileName,
+                            icon: icon,
+                            exec: "xdg-open '" + path.replace(/'/g, "'\\''") + "'"
+                        });
+                    }
+                }
+                backend._recentDocsCache[agent] = results;
+                backend._recentDocsCacheTime[agent] = Date.now();
+            }
+            disconnectSource(source);
+        }
+    }
+
+    property var _recentDocsPending: ({})
+
+    function _storageIdFromLauncherUrl(launcherUrl) {
+        if (!launcherUrl) return "";
+        var url = launcherUrl.toString().split("?")[0];
+        var desktopId = "";
+        if (url.startsWith("applications:")) {
+            desktopId = url.substring(13);
+        } else if (url.endsWith(".desktop")) {
+            var lastSlash = url.lastIndexOf("/");
+            desktopId = lastSlash !== -1 ? url.substring(lastSlash + 1) : url;
+        }
+        if (desktopId.endsWith(".desktop")) {
+            desktopId = desktopId.substring(0, desktopId.length - 8);
+        }
+        return desktopId;
+    }
+
+    function _queryRecentDocs(storageId) {
+        if (!storageId) return;
+        // Mark as in-flight
+        _recentDocsCache[storageId] = null;
+        var dbPath = _recentDocsDbPath();
+        if (!dbPath) return;
+        // Query both with and without org.kde. prefix variants
+        // Use sqlite3 to get recent file paths for this agent
+        var cmd = "sqlite3 -separator $'\\n' '" + dbPath.replace(/'/g, "'\\''") + "' "
+            + "\"SELECT DISTINCT targettedResource FROM ResourceScoreCache "
+            + "WHERE (initiatingAgent = '" + storageId.replace(/'/g, "''") + "' "
+            + "OR initiatingAgent = '" + storageId.replace(/'/g, "''").replace(/^.*\./, '') + "') "
+            + "AND targettedResource LIKE '/%' "
+            + "ORDER BY lastUpdate DESC LIMIT 6\"";
+        _recentDocsPending[cmd] = storageId;
+        _recentDocsReader.connectSource(cmd);
+    }
+
+    function _recentDocsDbPath() {
+        var myPath = Qt.resolvedUrl(".").toString();
+        var idx = myPath.indexOf("/.local/share/");
+        if (idx > 0) {
+            var home = myPath.substring(7, idx); // strip file://
+            return home + "/.local/share/kactivitymanagerd/resources/database";
+        }
+        // fallback: use $HOME via shell expansion
+        return "$HOME/.local/share/kactivitymanagerd/resources/database";
     }
 
     function recentDocumentActions(launcherUrl, parent) {
-        return [];
+        var storageId = _storageIdFromLauncherUrl(launcherUrl);
+        if (!storageId) return [];
+
+        var cached = _recentDocsCache[storageId];
+        var cacheTime = _recentDocsCacheTime[storageId] || 0;
+        var stale = (Date.now() - cacheTime) > 30000; // refresh every 30s
+
+        if (cached === undefined || (cached !== null && stale)) {
+            // Not queried yet, or stale — trigger async query
+            _queryRecentDocs(storageId);
+            return [];
+        }
+        if (cached === null) {
+            // Query in-flight
+            return [];
+        }
+        return cached;
     }
 
     function jsonArrayToUrlList(urls) {

@@ -454,11 +454,11 @@ PlasmoidItem {
     readonly property Component groupDialogComponent: Qt.createComponent("GroupDialog.qml")
     property GroupDialog groupDialog: null
 
-    function hasLauncher(url) {
+    function hasLauncher(url: url) : bool {
         return tasksModel.launcherPosition(url) != -1;
     }
 
-    function addLauncher(url) {
+    function addLauncher(url: url) : void {
         if (plasmoid.immutability !== PlasmaCore.Types.SystemImmutable) {
             tasksModel.requestAddLauncher(url);
         }
