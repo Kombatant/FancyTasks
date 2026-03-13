@@ -824,7 +824,77 @@ MouseArea {
             }
             height: width
 
+            opacity: minimizedPreview.showPreview ? 0 : 1
+            Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+
             source: model.decoration
+        }
+
+        // Minimized window preview: shows a cached snapshot of the window
+        // content instead of the app icon when the window is minimized.
+        // Uses layer caching to freeze the last visible frame before minimize.
+        // Supports X11 (WindowThumbnail) and Wayland (PipeWire screencasting).
+        Item {
+            id: minimizedPreview
+            anchors.centerIn: parent
+            width: icon.width
+            height: icon.height
+
+            readonly property bool featureActive: plasmoid.configuration.minimizedWindowPreview
+                                                  && task.isWindow
+                                                  && model.IsGroupParent !== true
+
+            // X11 path: window IDs are integers
+            readonly property int resolvedWinId: {
+                if (!featureActive) return 0;
+                if (!model.WinIdList || model.WinIdList.length === 0) return 0;
+                let wid = model.WinIdList[0];
+                return Number.isInteger(wid) ? wid : 0;
+            }
+
+            // Wayland path: window IDs are string UUIDs
+            readonly property string resolvedWinUuid: {
+                if (!featureActive) return "";
+                if (!model.WinIdList || model.WinIdList.length === 0) return "";
+                let wid = model.WinIdList[0];
+                return (typeof wid === "string" && wid.length > 0) ? wid : "";
+            }
+
+            readonly property bool isX11: resolvedWinId > 0
+            readonly property bool isWayland: !isX11 && resolvedWinUuid.length > 0
+
+            readonly property bool showPreview: featureActive
+                                                && model.IsMinimized === true
+                                                && (isX11 || isWayland)
+
+            opacity: showPreview ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+
+            // --- X11: PlasmaCore.WindowThumbnail with layer freeze ---
+            PlasmaCore.WindowThumbnail {
+                anchors.fill: parent
+                visible: minimizedPreview.isX11
+                winId: minimizedPreview.resolvedWinId
+
+                layer.enabled: minimizedPreview.featureActive && minimizedPreview.isX11
+                layer.live: model.IsMinimized !== true
+                layer.smooth: true
+            }
+
+            // --- Wayland: PipeWire screencasting via separate file ---
+            // Loaded from a separate QML file so that missing org.kde.pipewire
+            // doesn't cause an import error for the entire Task component.
+            Loader {
+                anchors.fill: parent
+                active: minimizedPreview.featureActive && minimizedPreview.isWayland
+                visible: active
+                asynchronous: true
+                source: "TaskPipeWirePreview.qml"
+
+                // Expose context for TaskPipeWirePreview.qml
+                property string windowUuid: minimizedPreview.resolvedWinUuid
+                property bool isMinimized: model.IsMinimized === true
+            }
         }
 
         Loader {

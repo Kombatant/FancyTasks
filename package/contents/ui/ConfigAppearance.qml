@@ -31,6 +31,7 @@ ConfigPage {
     property int cfg_iconSpacing: 0
 
     property alias cfg_useBorders: useBorders.checked
+    property alias cfg_minimizedWindowPreview: minimizedWindowPreview.checked
     property alias cfg_taskSpacingSize: taskSpacingSize.value
 
     property alias cfg_buttonColorize: buttonColorize.checked
@@ -75,6 +76,11 @@ Kirigami.FormLayout {
     CheckBox {
         id: useBorders
         text: i18n("Use plasma borders")
+    }
+
+    CheckBox {
+        id: minimizedWindowPreview
+        text: i18n("Show window preview for minimized windows")
     }
 
     Item {
