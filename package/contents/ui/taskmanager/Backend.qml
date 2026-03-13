@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import org.kde.plasma.plasma5support 2.0 as P5Support
+import org.kde.taskmanager 0.1 as TaskManager
 
 QtObject {
     id: backend
@@ -512,6 +513,55 @@ QtObject {
         const value = launcherUrl ? launcherUrl.toString().toLowerCase() : "";
         const browsers = ["firefox", "chrome", "chromium", "brave", "vivaldi", "opera", "edge"];
         return browsers.some(function(browser) { return value.includes(browser); }) ? ["WebBrowser"] : [];
+    }
+
+    // --- Precaching ---
+
+    property var _precachedUrls: ({})
+
+    function precacheForLauncher(launcherUrl) {
+        if (!launcherUrl) return;
+        var key = launcherUrl.toString();
+        if (_precachedUrls[key]) return;
+        _precachedUrls[key] = true;
+
+        // Trigger desktop file cache (needed for jump list + FileManager check)
+        cacheDesktopFile(launcherUrl);
+
+        // Trigger recent docs cache
+        var storageId = _storageIdFromLauncherUrl(launcherUrl);
+        if (storageId && _recentDocsCache[storageId] === undefined) {
+            _queryRecentDocs(storageId);
+        }
+
+        // Trigger places cache (will self-check FileManager category once desktop file is loaded)
+        if (_placesCache[key] === undefined) {
+            // Delay places query slightly to let desktop file cache populate first
+            _placesTimer.launcherUrl = key;
+            _placesTimer.restart();
+        }
+    }
+
+    readonly property Timer _placesTimer: Timer {
+        property string launcherUrl: ""
+        interval: 500
+        repeat: false
+        onTriggered: {
+            if (launcherUrl && backend._isFileManager(launcherUrl)) {
+                backend._queryPlaces(launcherUrl);
+            }
+        }
+    }
+
+    function precacheAllLaunchers(model) {
+        if (!model) return;
+        for (var i = 0; i < model.count; i++) {
+            var idx = model.makeModelIndex(i);
+            var url = model.data(idx, TaskManager.AbstractTasksModel.LauncherUrlWithoutIcon);
+            if (url && url.toString()) {
+                precacheForLauncher(url);
+            }
+        }
     }
 
     function globalRect(item) {

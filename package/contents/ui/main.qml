@@ -239,6 +239,28 @@ PlasmoidItem {
         }
     }
 
+    Connections {
+        target: tasksModel
+        function onCountChanged() {
+            precacheTimer.restart();
+        }
+    }
+
+    Timer {
+        id: precacheTimer
+        interval: 300
+        repeat: false
+        onTriggered: backend.precacheAllLaunchers(tasksModel)
+    }
+
+    Timer {
+        id: startupPrecacheTimer
+        interval: 1000
+        repeat: false
+        running: true
+        onTriggered: backend.precacheAllLaunchers(tasksModel)
+    }
+
     MprisUnavailable {
         id: mprisUnavailable
     }
