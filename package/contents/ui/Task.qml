@@ -867,9 +867,52 @@ MouseArea {
             readonly property bool showPreview: featureActive
                                                 && model.IsMinimized === true
                                                 && (isX11 || isWayland)
+            readonly property bool refreshingCache: refreshTimer.running
+            property double lastHeartbeat: 0
+
+            function requestCacheRefresh() {
+                if (!featureActive || !(isX11 || isWayland)) {
+                    return;
+                }
+
+                refreshTimer.restart();
+            }
+
+            onShowPreviewChanged: {
+                if (showPreview) {
+                    lastHeartbeat = Date.now();
+                    requestCacheRefresh();
+                } else {
+                    lastHeartbeat = 0;
+                    refreshTimer.stop();
+                }
+            }
 
             opacity: showPreview ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+
+            Timer {
+                id: resumeWatchdog
+                interval: 15000
+                repeat: true
+                running: minimizedPreview.showPreview
+
+                onTriggered: {
+                    const now = Date.now();
+
+                    if (minimizedPreview.lastHeartbeat > 0 && now - minimizedPreview.lastHeartbeat > interval * 2) {
+                        minimizedPreview.requestCacheRefresh();
+                    }
+
+                    minimizedPreview.lastHeartbeat = now;
+                }
+            }
+
+            Timer {
+                id: refreshTimer
+                interval: 1200
+                repeat: false
+            }
 
             // --- X11: PlasmaCore.WindowThumbnail with layer freeze ---
             PlasmaCore.WindowThumbnail {
@@ -878,7 +921,7 @@ MouseArea {
                 winId: minimizedPreview.resolvedWinId
 
                 layer.enabled: minimizedPreview.featureActive && minimizedPreview.isX11
-                layer.live: model.IsMinimized !== true
+                layer.live: model.IsMinimized !== true || minimizedPreview.refreshingCache
                 layer.smooth: true
             }
 
@@ -894,7 +937,7 @@ MouseArea {
 
                 // Expose context for TaskPipeWirePreview.qml
                 property string windowUuid: minimizedPreview.resolvedWinUuid
-                property bool isMinimized: model.IsMinimized === true
+                property bool isMinimized: model.IsMinimized === true && !minimizedPreview.refreshingCache
             }
         }
 
