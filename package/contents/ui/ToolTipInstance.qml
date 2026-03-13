@@ -198,7 +198,11 @@ ColumnLayout {
             active: !albumArtImage.visible && !Number.isInteger(thumbnailSourceItem.winId) && flatIndex !== -1
             asynchronous: true
             //In a loader since we might not have PipeWire available yet (WITH_PIPEWIRE could be undefined in plasma-workspace/libtaskmanager/declarative/taskmanagerplugin.cpp)
-            source: "PipeWireThumbnail.qml"
+            source: "TaskPipeWirePreview.qml"
+
+            // Expose context for TaskPipeWirePreview.qml
+            property string windowUuid: thumbnailSourceItem.winId
+            property bool isMinimized: thumbnailSourceItem.isMinimized
         }
 
         Loader {
