@@ -31,7 +31,5 @@ MouseArea {
         }
     }
 
-    onContainsMouseChanged: {
-        tasks.windowsHovered([winId], containsMouse);
-    }
 }
+

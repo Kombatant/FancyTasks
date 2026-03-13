@@ -23,8 +23,19 @@ ColumnLayout {
     readonly property int appPid: isGroup ? model.AppPid : pidParent
 
     // HACK: Avoid blank space in the tooltip after closing a window
-    ListView.onPooled: width = height = 0
+    ListView.onPooled: { width = height = 0; backend.cancelHighlightWindows(); }
     ListView.onReused: width = height = undefined
+
+    HoverHandler {
+        onHoveredChanged: {
+            var wid = thumbnailSourceItem.winId;
+            if (wid && wid !== 0) {
+                tasks.windowsHovered([wid], hovered);
+            } else if (!hovered) {
+                backend.cancelHighlightWindows();
+            }
+        }
+    }
 
     readonly property string title: {
         if (!isWin) {

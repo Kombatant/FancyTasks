@@ -21,10 +21,58 @@ QtObject {
     signal addLauncher(url url)
     signal showAllPlaces()
 
+    // Window-highlight state for debounced KWin D-Bus calls.
+    // Debouncing avoids race conditions when the mouse rapidly transitions
+    // between thumbnails, which would otherwise fire concurrent D-Bus processes.
+    property var _pendingHighlightWinIds: []
+    property bool _pendingHighlightActive: false
+
+    function _highlightCommand(winIds) {
+        var cmd = "dbus-send --session --dest=org.kde.KWin --type=method_call " +
+                  "/org/kde/KWin/HighlightWindow org.kde.KWin.HighlightWindow.highlightWindows ";
+        var args = [];
+        for (var i = 0; i < winIds.length; i++) {
+            var uuid = winIds[i].toString();
+            // Validate UUID format to guard against injection.
+            if (/^\{?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}?$/i.test(uuid)) {
+                args.push(uuid);
+            }
+        }
+        return cmd + "array:string:" + args.join(",");
+    }
+
+    property Timer _highlightTimer: Timer {
+        interval: 30
+        repeat: false
+        onTriggered: {
+            var cmd = backend._highlightCommand(
+                backend._pendingHighlightActive ? backend._pendingHighlightWinIds : []);
+            backend._processRunner.connectSource(cmd);
+        }
+    }
+
     function cancelHighlightWindows() {
+        _pendingHighlightWinIds = [];
+        _pendingHighlightActive = false;
+        _highlightTimer.restart();
     }
 
     function windowsHovered(winIds, hovered) {
+        if (!highlightWindows) {
+            return;
+        }
+        var uuids = [];
+        if (hovered && winIds) {
+            for (var i = 0; i < winIds.length; i++) {
+                var w = winIds[i];
+                if (w !== undefined && w !== null && w.toString() !== "0") {
+                    uuids.push(w.toString());
+                }
+            }
+        }
+        _pendingHighlightWinIds = uuids;
+        _pendingHighlightActive = hovered && uuids.length > 0;
+        _highlightTimer.restart();
     }
 
     function activateWindowView(winIds) {

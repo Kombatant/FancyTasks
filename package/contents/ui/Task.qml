@@ -723,6 +723,7 @@ MouseArea {
         onToolTipVisibleChanged: {
             if (!toolTipArea.toolTipVisible) {
                 tasks.toolTipOpenedByClick = null;
+                backend.cancelHighlightWindows();
             }
         }
 
