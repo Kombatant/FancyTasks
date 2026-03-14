@@ -113,6 +113,12 @@ KCM.SimpleKCM {
     property var cfg_useBordersDefault
     property var cfg_taskSpacingSize
     property var cfg_taskSpacingSizeDefault
+    property var cfg_hoverBounce
+    property var cfg_hoverBounceDefault
+    property var cfg_floatingIconShadow
+    property var cfg_floatingIconShadowDefault
+    property var cfg_floatingIconShadowType
+    property var cfg_floatingIconShadowTypeDefault
     property var cfg_buttonColorize
     property var cfg_buttonColorizeDefault
     property var cfg_buttonColorizeInactive

@@ -128,6 +128,18 @@
       <label>Whether task buttons should change in appearance when the mouse pointer is above them.</label>
       <default>true</default>
     </entry>
+    <entry name="hoverBounce" type="Bool">
+      <label>Enable bounce (raise/scale) effect on task icons when hovered.</label>
+      <default>false</default>
+    </entry>
+    <entry name="floatingIconShadow" type="Bool">
+      <label>Show a contrasting shadow behind taskbar icons to make them appear floating.</label>
+      <default>false</default>
+    </entry>
+    <entry name="floatingIconShadowType" type="Int">
+      <label>Select the shadow effect used behind taskbar icons. 0 = Drop shadow, 1 = Material shadow, 2 = Glow</label>
+      <default>0</default>
+    </entry>
     <entry name="maxTextLines" type="Int">
       <label>The maximum number of text lines to show in a task button. 0 means no limit.</label>
       <default>0</default>
@@ -283,4 +295,3 @@
   </group>
 
 </kcfg>
-

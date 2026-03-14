@@ -80,6 +80,21 @@ MouseArea {
     property string tintColor: Kirigami.ColorUtils.brightnessForColor(Kirigami.Theme.backgroundColor) ===
                                 Kirigami.ColorUtils.Dark ?
                                 "#ffffff" : "#000000"
+    readonly property color iconShadowColor: {
+        const background = Kirigami.Theme.backgroundColor;
+        const luminance = (background.r * 0.2126) + (background.g * 0.7152) + (background.b * 0.0722);
+
+        if (luminance <= 0.28) {
+            return Qt.rgba(1, 1, 1, 0.34);
+        }
+
+        if (luminance >= 0.72) {
+            return Qt.rgba(0, 0, 0, 0.34);
+        }
+
+        return luminance >= 0.5 ? Qt.rgba(0, 0, 0, 0.28) : Qt.rgba(1, 1, 1, 0.28);
+    }
+    readonly property int iconShadowType: plasmoid.configuration.floatingIconShadowType || 0
 
     Accessible.name: model.display
     Accessible.description: model.display ? i18n("Activate %1", model.display) : ""
@@ -88,6 +103,9 @@ MouseArea {
 
     onHighlightedChanged: {
         // ensure it doesn't get stuck with a window highlighted
+        console.log("[fancytasks][Task] onHighlightedChanged; highlighted=", highlighted, "frame.isHovered=", frame.isHovered, "plasmoid.location=", plasmoid.location);
+        // also print current transform state if available
+        try { console.log("[fancytasks][Task] transform: hoverTranslate.x=", hoverTranslate.x, "hoverScale=", hoverScale.xScale); } catch (e) {}
         backend.cancelHighlightWindows();
     }
 
@@ -127,6 +145,7 @@ MouseArea {
     }
 
     onContainsMouseChanged:  {
+        console.log("[fancytasks][Task] onContainsMouseChanged; containsMouse=", containsMouse, "task.highlighted=", highlighted);
         if (containsMouse) {
             if (inPopup) {
                 forceActiveFocus();
@@ -459,6 +478,9 @@ MouseArea {
         property string basePrefix: "normal"
         prefix: isHovered ? TaskTools.taskPrefixHovered(basePrefix) : TaskTools.taskPrefix(basePrefix)
         visible: plasmoid.configuration.buttonColorize ? false : true
+        onIsHoveredChanged: {
+            console.log("[fancytasks][Task] frame.isHovered changed:", frame.isHovered, "task.highlighted:", highlighted, "plasmoid.location:", plasmoid.location);
+        }
     }
 
     ColorOverlay {
@@ -809,7 +831,7 @@ MouseArea {
 
         //width: inPopup ? PlasmaCore.Units.iconSizes.small : Math.min(height, parent.width - LayoutManager.horizontalMargins())
 
-        Kirigami.Icon {
+        Item {
             id: icon
             anchors.centerIn: parent
 
@@ -827,8 +849,83 @@ MouseArea {
 
             opacity: minimizedPreview.showPreview ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+            transform: [
+                Translate {
+                    id: hoverTranslate
+                    x: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.LeftEdge ? -Math.min(12, icon.width * 0.12) : (plasmoid.location === PlasmaCore.Types.RightEdge ? Math.min(12, icon.width * 0.12) : 0)) : 0
+                    Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    Behavior on y { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    y: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.BottomEdge ? -Math.min(12, icon.height * 0.12) : (plasmoid.location === PlasmaCore.Types.TopEdge ? Math.min(12, icon.height * 0.12) : 0)) : 0
+                },
+                Scale {
+                    id: hoverScale
+                    origin.x: icon.width / 2
+                    origin.y: icon.height / 2
+                    xScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                    yScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                    Behavior on xScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    Behavior on yScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                }
+            ]
 
-            source: model.decoration
+            DropShadow {
+                anchors.fill: iconImage
+                visible: plasmoid.configuration.floatingIconShadow && task.iconShadowType === 0 && icon.opacity > 0
+                cached: true
+                transparentBorder: true
+                horizontalOffset: Math.max(1, Math.round(iconImage.width * 0.05))
+                verticalOffset: Math.max(1, Math.round(iconImage.height * 0.06))
+                radius: Math.max(4, Math.round(iconImage.height * 0.16))
+                samples: Math.max(9, 1 + (radius * 2))
+                color: task.iconShadowColor
+                source: iconImage
+            }
+
+            DropShadow {
+                anchors.fill: iconImage
+                visible: plasmoid.configuration.floatingIconShadow && task.iconShadowType === 1 && icon.opacity > 0
+                cached: true
+                transparentBorder: true
+                horizontalOffset: Math.max(1, Math.round(iconImage.width * 0.03))
+                verticalOffset: Math.max(1, Math.round(iconImage.height * 0.03))
+                radius: Math.max(3, Math.round(iconImage.height * 0.08))
+                samples: Math.max(9, 1 + (radius * 2))
+                color: Qt.rgba(task.iconShadowColor.r, task.iconShadowColor.g, task.iconShadowColor.b, Math.min(1, task.iconShadowColor.a * 0.8))
+                source: iconImage
+            }
+
+            DropShadow {
+                anchors.fill: iconImage
+                visible: plasmoid.configuration.floatingIconShadow && task.iconShadowType === 1 && icon.opacity > 0
+                cached: true
+                transparentBorder: true
+                horizontalOffset: Math.max(2, Math.round(iconImage.width * 0.07))
+                verticalOffset: Math.max(2, Math.round(iconImage.height * 0.12))
+                radius: Math.max(8, Math.round(iconImage.height * 0.24))
+                samples: Math.max(17, 1 + (radius * 2))
+                color: Qt.rgba(task.iconShadowColor.r, task.iconShadowColor.g, task.iconShadowColor.b, Math.min(1, task.iconShadowColor.a * 0.45))
+                source: iconImage
+            }
+
+            Glow {
+                anchors.fill: iconImage
+                visible: plasmoid.configuration.floatingIconShadow && task.iconShadowType === 2 && icon.opacity > 0
+                cached: true
+                transparentBorder: true
+                radius: Math.max(6, Math.round(iconImage.height * 0.18))
+                samples: Math.max(13, 1 + (radius * 2))
+                spread: 0.18
+                color: Qt.rgba(task.iconShadowColor.r, task.iconShadowColor.g, task.iconShadowColor.b, Math.min(1, task.iconShadowColor.a * 1.1))
+                source: iconImage
+            }
+
+            Kirigami.Icon {
+                id: iconImage
+                anchors.fill: parent
+                source: model.decoration
+            }
+
+            // Move Behaviors into the transform components to avoid invalid external references
         }
 
         // Minimized window preview: shows a cached snapshot of the window
@@ -922,6 +1019,23 @@ MouseArea {
                 visible: minimizedPreview.isX11
                 winId: minimizedPreview.resolvedWinId
 
+                transform: [
+                    Translate {
+                        x: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.LeftEdge ? -Math.min(12, icon.width * 0.12) : (plasmoid.location === PlasmaCore.Types.RightEdge ? Math.min(12, icon.width * 0.12) : 0)) : 0
+                        y: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.BottomEdge ? -Math.min(12, icon.height * 0.12) : (plasmoid.location === PlasmaCore.Types.TopEdge ? Math.min(12, icon.height * 0.12) : 0)) : 0
+                        Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                        Behavior on y { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    },
+                    Scale {
+                        origin.x: width / 2
+                        origin.y: height / 2
+                        xScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                        yScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                        Behavior on xScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                        Behavior on yScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    }
+                ]
+
                 layer.enabled: minimizedPreview.featureActive && minimizedPreview.isX11
                 layer.live: model.IsMinimized !== true || minimizedPreview.refreshingCache
                 layer.smooth: true
@@ -946,6 +1060,22 @@ MouseArea {
                 // Keep the PipeWire stream always live — no layer freeze.
                 // The stream delivers the last visible frame from KWin.
                 property bool isMinimized: false
+                transform: [
+                    Translate {
+                        x: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.LeftEdge ? -Math.min(12, icon.width * 0.12) : (plasmoid.location === PlasmaCore.Types.RightEdge ? Math.min(12, icon.width * 0.12) : 0)) : 0
+                        y: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.BottomEdge ? -Math.min(12, icon.height * 0.12) : (plasmoid.location === PlasmaCore.Types.TopEdge ? Math.min(12, icon.height * 0.12) : 0)) : 0
+                        Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                        Behavior on y { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    },
+                    Scale {
+                        origin.x: width / 2
+                        origin.y: height / 2
+                        xScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                        yScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                        Behavior on xScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                        Behavior on yScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                    }
+                ]
             }
 
             Item {
@@ -975,6 +1105,22 @@ MouseArea {
                     width: minimizedPreview.badgeSize
                     height: width
                     source: model.decoration
+                    transform: [
+                        Translate {
+                            x: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.LeftEdge ? -Math.min(12, width * 0.12) : (plasmoid.location === PlasmaCore.Types.RightEdge ? Math.min(12, width * 0.12) : 0)) : 0
+                            y: (plasmoid.configuration.hoverBounce && task.highlighted) ? (plasmoid.location === PlasmaCore.Types.BottomEdge ? -Math.min(12, height * 0.12) : (plasmoid.location === PlasmaCore.Types.TopEdge ? Math.min(12, height * 0.12) : 0)) : 0
+                            Behavior on x { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                            Behavior on y { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                        },
+                        Scale {
+                            origin.x: width / 2
+                            origin.y: height / 2
+                            xScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                            yScale: (plasmoid.configuration.hoverBounce && task.highlighted) ? 1.06 : 1.0
+                            Behavior on xScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                            Behavior on yScale { NumberAnimation { duration: 300; easing.type: Easing.OutBack } }
+                        }
+                    ]
                 }
             }
         }

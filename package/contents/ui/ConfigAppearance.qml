@@ -33,6 +33,8 @@ ConfigPage {
     property alias cfg_useBorders: useBorders.checked
     property alias cfg_minimizedWindowPreview: minimizedWindowPreview.checked
     property alias cfg_taskSpacingSize: taskSpacingSize.value
+    property alias cfg_floatingIconShadow: floatingIconShadow.checked
+    property alias cfg_floatingIconShadowType: floatingIconShadowType.currentIndex
 
     property alias cfg_buttonColorize: buttonColorize.checked
     property alias cfg_buttonColorizeInactive: buttonColorizeInactive.checked
@@ -81,6 +83,29 @@ Kirigami.FormLayout {
     CheckBox {
         id: minimizedWindowPreview
         text: i18n("Show window preview for minimized windows")
+    }
+
+    CheckBox {
+        id: hoverBounce
+        text: i18n("Enable bounce effect on hover")
+        checked: cfg_hoverBounce === true
+        onCheckedChanged: cfg_hoverBounce = checked
+    }
+
+    CheckBox {
+        id: floatingIconShadow
+        text: i18n("Show floating icon shadow")
+    }
+
+    ComboBox {
+        id: floatingIconShadowType
+        Kirigami.FormData.label: i18n("Shadow type:")
+        enabled: floatingIconShadow.checked
+        model: [
+            i18n("Drop shadow"),
+            i18n("Material shadow"),
+            i18n("Glow")
+        ]
     }
 
     Item {
