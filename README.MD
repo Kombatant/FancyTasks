@@ -94,7 +94,7 @@ To run the plasmoid in a standalone Plasma window for development:
 
 ## Special Note: `patch-kicker.py`
 
-This repository includes [`patch-kicker.py`](/home/kombatant/Dev/languages/fancytasks/patch-kicker.py), a Python utility that patches:
+This repository includes [`patch-kicker.py`](patch-kicker.py), a Python utility that patches:
 
 ```text
 /usr/lib/qt6/qml/org/kde/plasma/private/kicker/libkickerplugin.so
