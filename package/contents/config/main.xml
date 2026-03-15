@@ -166,7 +166,7 @@
     </entry>
     <entry name="indicatorsEnabled" type="Int">
       <label>Enable taskbar indicator effect. 0 = Off, 1 = On</label>
-      <default>0</default>
+      <default>1</default>
     </entry>
     <entry name="indicatorProgress" type="Bool">
       <label>Display progress on indicator instead of button</label>

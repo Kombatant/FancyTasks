@@ -8,7 +8,7 @@ import org.kde.kquickcontrols 2.0 as KQControls
 
 ConfigPage {
 
-    property alias cfg_indicatorsEnabled: indicatorsEnabled.currentIndex
+    property int cfg_indicatorsEnabled: 1
     property alias cfg_groupIconEnabled: groupIconEnabled.currentIndex
     property alias cfg_indicatorProgress: indicatorProgress.checked
     property alias cfg_indicatorProgressColor: indicatorProgressColor.color
@@ -32,6 +32,12 @@ ConfigPage {
     property alias cfg_indicatorAccentColor: indicatorAccentColor.checked
     property alias cfg_indicatorCustomColor: indicatorCustomColor.color
 
+    onCfg_indicatorsEnabledChanged: {
+        if (cfg_indicatorsEnabled !== 1) {
+            cfg_indicatorsEnabled = 1
+        }
+    }
+
 Kirigami.FormLayout {
     anchors.left: parent.left
     anchors.right: parent.right
@@ -40,6 +46,8 @@ Kirigami.FormLayout {
         id: indicatorsEnabled
         Kirigami.FormData.label: i18n("Indicators:")
         model: [i18n("Disabled"), i18n("Enabled")]
+        currentIndex: cfg_indicatorsEnabled
+        enabled: false
     }
 
     CheckBox {

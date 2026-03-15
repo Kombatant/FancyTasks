@@ -61,6 +61,7 @@ MouseArea {
     readonly property bool isCiliora: plasmoid.configuration.indicatorStyle === 1
     readonly property bool isDashes: plasmoid.configuration.indicatorStyle === 2
     readonly property bool isDots: plasmoid.configuration.indicatorStyle === 3
+    readonly property bool customIndicatorsEnabled: tasks.indicatorsForcedEnabled
 
     property Item audioStreamOverlay
     property var audioStreams: []
@@ -567,7 +568,7 @@ MouseArea {
             rightMargin: ((inPopup || tasks.vertical) && taskList.columns > 1) ? LayoutManager.iconMargin : 0           
         }
         imagePath: plasmoid.configuration.disableButtonSvg ? "" : "widgets/tasks"
-        enabledBorders: plasmoid.configuration.useBorders ? 1 | 2 | 4 | 8 : 0
+        enabledBorders: plasmoid.configuration.useBorders ? (KSvg.FrameSvg.AllBorders & ~tasks.plasmaDecorationIndicatorBorder) : 0
         property bool isHovered: task.highlighted && plasmoid.configuration.taskHoverEffect
         property string basePrefix: "normal"
         prefix: isHovered ? TaskTools.taskPrefixHovered(basePrefix) : TaskTools.taskPrefix(basePrefix)
@@ -589,15 +590,20 @@ MouseArea {
 
     Flow {
         id: indicator
-        visible: plasmoid.configuration.indicatorsEnabled ? true : false
+        visible: task.customIndicatorsEnabled
         flow: Flow.LeftToRight
         spacing: Kirigami.Units.smallSpacing
         clip: true
+        readonly property int dotDiameter: Math.max(
+            Math.max(plasmoid.configuration.indicatorSize, plasmoid.configuration.indicatorLength),
+            Math.round(Kirigami.Units.smallSpacing * 1.5)
+        )
+        readonly property int effectiveThickness: task.isDots ? dotDiameter : plasmoid.configuration.indicatorSize
         Repeater {
 
             model: {
                 
-                if(!plasmoid.configuration.indicatorsEnabled)
+                if(!task.customIndicatorsEnabled)
                 return 0;
                 if(task.childCount < plasmoid.configuration.indicatorMinLimit)
                 return 0;
@@ -622,6 +628,7 @@ MouseArea {
                 readonly property int adjust: plasmoid.configuration.indicatorShrink
                 readonly property int indicatorLength: plasmoid.configuration.indicatorLength
                 readonly property int spacing: Kirigami.Units.smallSpacing
+                readonly property int dotDiameter: indicator.dotDiameter
                 readonly property bool isVertical: {
                     if(plasmoid.formFactor === PlasmaCore.Types.Vertical && !plasmoid.configuration.indicatorOverride)
                     return true;
@@ -677,12 +684,15 @@ MouseArea {
                     else {
                         indicatorComputedSize = indicatorLength
                     }
+                    if(task.isDots) {
+                        indicatorComputedSize = Math.max(indicatorComputedSize, dotDiameter)
+                    }
                     if(!isVertical){
                         width = indicatorComputedSize;
-                        height = plasmoid.configuration.indicatorSize
+                        height = task.isDots ? indicatorComputedSize : plasmoid.configuration.indicatorSize
                     }
                     else{
-                        width = plasmoid.configuration.indicatorSize
+                        width = task.isDots ? indicatorComputedSize : plasmoid.configuration.indicatorSize
                         height = indicatorComputedSize
                     }
                     if(plasmoid.configuration.indicatorDesaturate && task.state === "minimizedNormal") {
@@ -707,8 +717,11 @@ MouseArea {
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height)
                     height: width
+                    antialiasing: true
                     color: computedVar.colorCalc
                     radius: width / 2
+                    border.width: Math.max(1, Math.round(width * 0.12))
+                    border.color: Kirigami.ColorUtils.tintWithAlpha(computedVar.colorCalc, tintColor, 0.18)
 
                     Behavior on color { PropertyAnimation {duration: plasmoid.configuration.indicatorsAnimated ? 250 : 0} }
                     Behavior on radius { PropertyAnimation {duration: plasmoid.configuration.indicatorsAnimated ? 250 : 0} }
@@ -756,7 +769,7 @@ MouseArea {
                 PropertyChanges {
                     target: indicator
                     width: undefined
-                    height: plasmoid.configuration.indicatorSize
+                    height: indicator.effectiveThickness
                     anchors.topMargin: 0;
                     anchors.bottomMargin: plasmoid.configuration.indicatorEdgeOffset;
                     anchors.leftMargin: 0;
@@ -778,7 +791,7 @@ MouseArea {
                 PropertyChanges {
                     target: indicator
                     height: undefined
-                    width: plasmoid.configuration.indicatorSize
+                    width: indicator.effectiveThickness
                     anchors.topMargin: 0;
                     anchors.bottomMargin: 0;
                     anchors.leftMargin: plasmoid.configuration.indicatorEdgeOffset;
@@ -800,7 +813,7 @@ MouseArea {
                 PropertyChanges {
                     target: indicator
                     height: undefined
-                    width: plasmoid.configuration.indicatorSize
+                    width: indicator.effectiveThickness
                     anchors.topMargin: 0;
                     anchors.bottomMargin: 0;
                     anchors.leftMargin: 0;
@@ -823,7 +836,7 @@ MouseArea {
                 PropertyChanges {
                     target: indicator
                     width: undefined
-                    height: plasmoid.configuration.indicatorSize
+                    height: indicator.effectiveThickness
                     anchors.topMargin: plasmoid.configuration.indicatorEdgeOffset;
                     anchors.bottomMargin: 0;
                     anchors.leftMargin: 0;
@@ -1216,7 +1229,7 @@ MouseArea {
                     // Force re-evaluation when these change
                     var indVisible = indicator.visible
                     var indState = indicator.state
-                    var indEnabled = plasmoid.configuration.indicatorsEnabled
+                    var indEnabled = task.customIndicatorsEnabled
                     if (indEnabled && indVisible && indState === "bottom") {
                         var previewBottomInTask = iconBox.y + minimizedPreview.y + minimizedPreview.height
                         var margin = previewBottomInTask + minimizedPreview.badgeSize / 2 - indicator.y + 1
@@ -1445,7 +1458,7 @@ MouseArea {
             PropertyChanges {
                 target: frame
                 basePrefix: "minimized"
-                visible: (plasmoid.configuration.buttonColorize && plasmoid.configuration.buttonColorizeInactive) ? false : true
+                visible: false
             }
             PropertyChanges { 
                 target: colorOverride
@@ -1463,7 +1476,7 @@ MouseArea {
             PropertyChanges {
                 target: frame
                 basePrefix: "minimized"
-                visible: plasmoid.configuration.disableButtonInactiveSvg ? false : true
+                visible: false
             }
             PropertyChanges { 
                 target: colorOverride
@@ -1481,6 +1494,7 @@ MouseArea {
             PropertyChanges {
                 target: frame
                 basePrefix: "focus"
+                visible: false
             }
             PropertyChanges { 
                 target: colorOverride
@@ -1488,7 +1502,7 @@ MouseArea {
             }
             PropertyChanges{
                 target: indicator
-                visible: plasmoid.configuration.indicatorsEnabled ? true : false
+                visible: task.customIndicatorsEnabled
             }
         },
         State {
@@ -1500,7 +1514,7 @@ MouseArea {
             }
             PropertyChanges { 
                 target: frame
-                visible: plasmoid.configuration.buttonColorize && plasmoid.configuration.buttonColorizeInactive ? false : true
+                visible: false
             }
             PropertyChanges{
                 target: indicator
@@ -1516,7 +1530,7 @@ MouseArea {
             }
             PropertyChanges { 
                 target: frame
-                visible: plasmoid.configuration.disableButtonInactiveSvg ? false : true
+                visible: false
             }
             PropertyChanges{
                 target: indicator
@@ -1526,13 +1540,14 @@ MouseArea {
         State {
             name: "hover"
             when: frame.isHovered
+                && !(model.IsDemandingAttention === true || (task.smartLauncherItem && task.smartLauncherItem.urgent))
             PropertyChanges { 
                 target: colorOverride
                 visible: plasmoid.configuration.buttonColorize ? true : false
             }
             PropertyChanges { 
                 target: frame
-                visible: plasmoid.configuration.buttonColorize ? false : true
+                visible: false
             }
             PropertyChanges{
                 target: indicator

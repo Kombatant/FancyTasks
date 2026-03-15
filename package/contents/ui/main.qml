@@ -31,6 +31,39 @@ PlasmoidItem {
     property bool iconsOnly: plasmoid.configuration.iconOnly
     readonly property bool manualSorting: plasmoid.configuration.sortingStrategy === 1
     readonly property bool effectiveSeparateLaunchers: !manualSorting || iconsOnly || plasmoid.configuration.separateLaunchers
+    readonly property int forcedIndicatorsEnabledIndex: 1
+    readonly property bool indicatorsForcedEnabled: true
+    // Hide Plasma's built-in running marker so only Fancy Tasks indicators remain.
+    readonly property int plasmaDecorationIndicatorBorder: {
+        let effectiveLocation = plasmoid.location
+
+        if (plasmoid.configuration.overridePlasmaButtonDirection) {
+            switch (plasmoid.configuration.plasmaButtonDirection) {
+            case 2:
+                effectiveLocation = PlasmaCore.Types.LeftEdge
+                break
+            case 1:
+                effectiveLocation = PlasmaCore.Types.TopEdge
+                break
+            case 3:
+                effectiveLocation = PlasmaCore.Types.RightEdge
+                break
+            default:
+                effectiveLocation = PlasmaCore.Types.BottomEdge
+            }
+        }
+
+        switch (effectiveLocation) {
+        case PlasmaCore.Types.LeftEdge:
+            return KSvg.FrameSvg.RightBorder
+        case PlasmaCore.Types.TopEdge:
+            return KSvg.FrameSvg.BottomBorder
+        case PlasmaCore.Types.RightEdge:
+            return KSvg.FrameSvg.LeftBorder
+        default:
+            return KSvg.FrameSvg.TopBorder
+        }
+    }
     property bool _reconciling: false
     property bool containsMouse: hoverTracker.hovered
     property bool hoverEffectsActive: hoverTracker.hovered || hoverExitTimer.running
@@ -78,6 +111,12 @@ PlasmoidItem {
         id: defaultFontMetrics
         font: Qt.application.font
         text: "m"
+    }
+
+    Binding {
+        target: plasmoid.configuration
+        property: "indicatorsEnabled"
+        value: tasks.forcedIndicatorsEnabledIndex
     }
 
     HoverHandler {
