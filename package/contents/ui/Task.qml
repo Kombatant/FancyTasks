@@ -1008,8 +1008,7 @@ MouseArea {
 
         // Minimized window preview: shows a cached snapshot of the window
         // content instead of the app icon when the window is minimized.
-        // Uses layer caching to freeze the last visible frame before minimize.
-        // Supports X11 (WindowThumbnail) and Wayland (PipeWire screencasting).
+        // Uses PipeWire screencasting to capture the last visible frame on Wayland.
         Item {
             id: minimizedPreview
             anchors.centerIn: parent
@@ -1020,15 +1019,6 @@ MouseArea {
                                                   && task.isWindow
                                                   && model.IsGroupParent !== true
 
-            // X11 path: window IDs are integers
-            readonly property int resolvedWinId: {
-                if (!featureActive) return 0;
-                if (!model.WinIdList || model.WinIdList.length === 0) return 0;
-                let wid = model.WinIdList[0];
-                return Number.isInteger(wid) ? wid : 0;
-            }
-
-            // Wayland path: window IDs are string UUIDs
             readonly property string resolvedWinUuid: {
                 if (!featureActive) return "";
                 if (!model.WinIdList || model.WinIdList.length === 0) return "";
@@ -1036,19 +1026,15 @@ MouseArea {
                 return (typeof wid === "string" && wid.length > 0) ? wid : "";
             }
 
-            readonly property bool isX11: resolvedWinId > 0
-            readonly property bool isWayland: !isX11 && resolvedWinUuid.length > 0
-
             readonly property bool showPreview: featureActive
                                                 && model.IsMinimized === true
-                                                && (isX11 || isWayland)
-            readonly property bool refreshingCache: refreshTimer.running
+                                                && resolvedWinUuid.length > 0
             readonly property real badgeSize: Math.min(Math.min(width, height) * 0.36, Kirigami.Units.iconSizes.smallMedium)
             readonly property real badgePadding: Math.max(2, Math.round(badgeSize * 0.16))
             property double lastHeartbeat: 0
 
             function requestCacheRefresh() {
-                if (!featureActive || !(isX11 || isWayland)) {
+                if (!featureActive || resolvedWinUuid.length === 0) {
                     return;
                 }
 
@@ -1168,27 +1154,11 @@ MouseArea {
                     id: previewSurface
                     anchors.fill: parent
 
-                    // --- X11: PlasmaCore.WindowThumbnail with layer freeze ---
-                    PlasmaCore.WindowThumbnail {
-                        anchors.fill: parent
-                        visible: minimizedPreview.isX11
-                        winId: minimizedPreview.resolvedWinId
-
-                        layer.enabled: minimizedPreview.featureActive && minimizedPreview.isX11
-                        layer.live: model.IsMinimized !== true || minimizedPreview.refreshingCache
-                        layer.smooth: true
-                    }
-
-                    // --- Wayland: PipeWire screencasting via separate file ---
                     // Loaded from a separate QML file so that missing org.kde.pipewire
                     // doesn't cause an import error for the entire Task component.
-                    // Unlike the X11 path which freezes a long-running layer, the
-                    // PipeWire path creates a fresh stream on demand when the preview
-                    // is shown (on minimize).  KWin provides the last visible frame
-                    // for the screencast request, matching the tooltip strategy.
                     Loader {
                         anchors.fill: parent
-                        active: minimizedPreview.showPreview && minimizedPreview.isWayland
+                        active: minimizedPreview.showPreview
                         visible: active
                         asynchronous: true
                         source: "TaskPipeWirePreview.qml"

@@ -13,7 +13,6 @@ import QtQuick.Layouts 1.15
 import Qt5Compat.GraphicalEffects
 
 import org.kde.kirigami 2.20 as Kirigami
-import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.components 3.0 as PlasmaComponents3
 import org.kde.plasma.extras 2.0 as PlasmaExtras
 
@@ -156,8 +155,7 @@ ColumnLayout {
         visible: toolTipDelegate.isWin
 
         readonly property bool isMinimized: isGroup ? IsMinimized == true : isMinimizedParent
-        // TODO: this causes XCB error message when being visible the first time
-        readonly property var winId: toolTipDelegate.isWin && toolTipDelegate.windows[flatIndex] !== undefined ? toolTipDelegate.windows[flatIndex] : 0
+        readonly property var winId: toolTipDelegate.isWin && toolTipDelegate.windows[flatIndex] !== undefined ? toolTipDelegate.windows[flatIndex] : ""
 
         // There's no PlasmaComponents3 version
         PlasmaExtras.Highlight {
@@ -168,45 +166,13 @@ ColumnLayout {
         }
 
         Loader {
-            id: thumbnailLoader
-            active: !albumArtImage.visible && Number.isInteger(thumbnailSourceItem.winId) && flatIndex !== -1 // Avoid loading when the instance is going to be destroyed
-            asynchronous: true
-            visible: active
+            id: pipeWireLoader
             anchors.fill: hoverHandler
             // Indent a little bit so that neither the thumbnail nor the drop
             // shadow can cover up the highlight
             anchors.margins: Kirigami.Units.smallSpacing * 2
 
-            sourceComponent: thumbnailSourceItem.isMinimized ? iconItem : x11Thumbnail
-
-            Component {
-                id: x11Thumbnail
-
-                PlasmaCore.WindowThumbnail {
-                    winId: thumbnailSourceItem.winId
-                }
-            }
-
-            // when minimized, we don't have a preview on X11, so show the icon
-            Component {
-                id: iconItem
-
-                Kirigami.Icon {
-                    source: icon
-                    anchors.fill: parent
-                    visible: valid
-                }
-            }
-        }
-
-        Loader {
-            id: pipeWireLoader
-            anchors.fill: hoverHandler
-            // Indent a little bit so that neither the thumbnail nor the drop
-            // shadow can cover up the highlight
-            anchors.margins: thumbnailLoader.anchors.margins
-
-            active: !albumArtImage.visible && !Number.isInteger(thumbnailSourceItem.winId) && flatIndex !== -1
+            active: !albumArtImage.visible && typeof thumbnailSourceItem.winId === "string" && thumbnailSourceItem.winId.length > 0 && flatIndex !== -1
             asynchronous: true
             //In a loader since we might not have PipeWire available yet (WITH_PIPEWIRE could be undefined in plasma-workspace/libtaskmanager/declarative/taskmanagerplugin.cpp)
             source: "TaskPipeWirePreview.qml"
@@ -231,10 +197,10 @@ ColumnLayout {
         }
 
         Loader {
-            active: (pipeWireLoader.active && pipeWireLoader.item && pipeWireLoader.item.visible) || (thumbnailLoader.status === Loader.Ready && !thumbnailSourceItem.isMinimized)
+            active: pipeWireLoader.active && pipeWireLoader.item && pipeWireLoader.item.visible
             asynchronous: true
             visible: active
-            anchors.fill: pipeWireLoader.active ? pipeWireLoader : thumbnailLoader
+            anchors.fill: pipeWireLoader
 
             sourceComponent: DropShadow {
                 horizontalOffset: 0
@@ -242,7 +208,7 @@ ColumnLayout {
                 radius: Math.round(8.0 * Screen.devicePixelRatio)
                 samples: Math.round(radius * 1.5)
                 color: "Black"
-                source: pipeWireLoader.active ? pipeWireLoader.item : thumbnailLoader.item // source could be undefined when albumArt is available, so put it in a Loader.
+                source: pipeWireLoader.item // source could be undefined when albumArt is available, so put it in a Loader.
             }
         }
 
