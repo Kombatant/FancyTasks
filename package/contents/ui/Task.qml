@@ -130,7 +130,7 @@ MouseArea {
             return 1.06;
         }
 
-        return 1 + (hoverEffectProgress(item) * 0.72);
+        return 1 + (hoverEffectProgress(item) * 0.5);
     }
 
     function hoverOffsetForItem(item, axis) {
