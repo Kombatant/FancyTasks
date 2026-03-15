@@ -1,12 +1,12 @@
-# Translation of Fancy Tasks in pt_BR
+# Translation of FancyTasks Reloaded in pt_BR
 # Copyright (C) 2023
-# This file is distributed under the same license as the Fancy Tasks package.
+# This file is distributed under the same license as the FancyTasks Reloaded package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Fancy Tasks\n"
-"Report-Msgid-Bugs-To: https://github.com/alexankitty/FancyTasks\n"
+"Project-Id-Version: FancyTasks Reloaded\n"
+"Report-Msgid-Bugs-To: https://github.com/Kombatant/FancyTasks/issues\n"
 "POT-Creation-Date: 2026-03-12 17:39-0400\n"
 "PO-Revision-Date: 2023-09-21 16:18-0300\n"
 "Last-Translator:  Douglas Guimarães <<dg2003gh@gmail.com>>\n"

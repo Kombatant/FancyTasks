@@ -181,9 +181,9 @@ MouseArea {
 
     onHighlightedChanged: {
         // ensure it doesn't get stuck with a window highlighted
-        console.log("[fancytasks][Task] onHighlightedChanged; highlighted=", highlighted, "frame.isHovered=", frame.isHovered, "plasmoid.location=", plasmoid.location);
+        console.log("[fancytasks_rld][Task] onHighlightedChanged; highlighted=", highlighted, "frame.isHovered=", frame.isHovered, "plasmoid.location=", plasmoid.location);
         // also print current transform state if available
-        try { console.log("[fancytasks][Task] transform: hoverTranslate.x=", hoverTranslate.x, "hoverScale=", hoverScale.xScale); } catch (e) {}
+        try { console.log("[fancytasks_rld][Task] transform: hoverTranslate.x=", hoverTranslate.x, "hoverScale=", hoverScale.xScale); } catch (e) {}
         backend.cancelHighlightWindows();
     }
 
@@ -223,7 +223,7 @@ MouseArea {
     }
 
     onContainsMouseChanged:  {
-        console.log("[fancytasks][Task] onContainsMouseChanged; containsMouse=", containsMouse, "task.highlighted=", highlighted);
+        console.log("[fancytasks_rld][Task] onContainsMouseChanged; containsMouse=", containsMouse, "task.highlighted=", highlighted);
         if (containsMouse) {
             if (inPopup) {
                 forceActiveFocus();
@@ -557,7 +557,7 @@ MouseArea {
         prefix: isHovered ? TaskTools.taskPrefixHovered(basePrefix) : TaskTools.taskPrefix(basePrefix)
         visible: plasmoid.configuration.buttonColorize ? false : true
         onIsHoveredChanged: {
-            console.log("[fancytasks][Task] frame.isHovered changed:", frame.isHovered, "task.highlighted:", highlighted, "plasmoid.location:", plasmoid.location);
+            console.log("[fancytasks_rld][Task] frame.isHovered changed:", frame.isHovered, "task.highlighted:", highlighted, "plasmoid.location:", plasmoid.location);
         }
     }
 

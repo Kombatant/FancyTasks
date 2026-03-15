@@ -11,8 +11,8 @@ rm -rf "$SCRIPT_DIR/build" "$SCRIPT_DIR/release"
 mkdir -p "$SCRIPT_DIR/build" "$SCRIPT_DIR/release"
 cp -r "$SCRIPT_DIR/package/contents" "$SCRIPT_DIR/build"
 cp "$SCRIPT_DIR/package/metadata.json" "$SCRIPT_DIR/build"
-cp "$SCRIPT_DIR/package/FancyTasks.png" "$SCRIPT_DIR/build"
+cp "$SCRIPT_DIR/package/FancyTasksReloaded.png" "$SCRIPT_DIR/build"
 
 cd "$SCRIPT_DIR/build"
-tar cf "$SCRIPT_DIR/release/FancyTasks.tar.gz" .
+tar cf "$SCRIPT_DIR/release/FancyTasksReloaded.tar.gz" .
 rm -rf "$SCRIPT_DIR/build"

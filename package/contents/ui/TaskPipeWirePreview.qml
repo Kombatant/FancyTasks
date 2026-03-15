@@ -1,5 +1,5 @@
 /*
-    SPDX-FileCopyrightText: 2025 FancyTasks Contributors
+    SPDX-FileCopyrightText: 2025 FancyTasks Reloaded Contributors
 
     SPDX-License-Identifier: GPL-2.0-or-later
 */

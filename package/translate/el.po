@@ -1,12 +1,12 @@
-# Translation of Fancy Tasks in el
+# Translation of FancyTasks Reloaded in el
 # Copyright (C) 2026
-# This file is distributed under the same license as the Fancy Tasks package.
+# This file is distributed under the same license as the FancyTasks Reloaded package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Fancy Tasks\n"
-"Report-Msgid-Bugs-To: https://github.com/alexankitty/FancyTasks\n"
+"Project-Id-Version: FancyTasks Reloaded\n"
+"Report-Msgid-Bugs-To: https://github.com/Kombatant/FancyTasks/issues\n"
 "POT-Creation-Date: 2026-03-12 17:39-0400\n"
 "PO-Revision-Date: 2026-03-15 00:00-0400\n"
 "Last-Translator: Codex <codex@openai.com>\n"

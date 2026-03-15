@@ -1,10 +1,10 @@
-# FancyTasks
+# FancyTasks Reloaded
 
-FancyTasks is a KDE Plasma task manager plasmoid for Plasma 6. It keeps the familiar taskbar workflow, then adds more styling, more layout control, and more behavior options than the stock task manager exposes by default.
+FancyTasks Reloaded is a KDE Plasma task manager plasmoid for Plasma 6. It keeps the familiar taskbar workflow, then adds more styling, more layout control, and more behavior options than the stock task manager exposes by default.
 
 This repository is an actively maintained Plasma 6 fork of the original FancyTasks work by Alexandra Stone, itself based on KDE's task manager applet by Eike Hein.
 
-![Fancy Tasks Icon](package/FancyTasks.png)
+![FancyTasks Reloaded Icon](package/FancyTasksReloaded.png)
 
 ## Goals
 
@@ -33,7 +33,7 @@ This repository is an actively maintained Plasma 6 fork of the original FancyTas
 - `python3`
 - Kirigami/QML runtime provided by your Plasma desktop packages
 
-FancyTasks currently depends on some Plasma private task manager and audio APIs, so it is expected to work best when your installed Plasma desktop packages match the target runtime.
+FancyTasks Reloaded currently depends on some Plasma private task manager and audio APIs, so it is expected to work best when your installed Plasma desktop packages match the target runtime.
 
 ## Installation
 
@@ -52,7 +52,6 @@ Install the plasmoid with the helper script:
 
 That script:
 
-- removes the old legacy package ID `alexankitty.fancytasks` if it exists
 - installs or upgrades the current package from `./package`
 - installs the app icon into `~/.local/share/icons/hicolor/256x256/apps/`
 
@@ -68,8 +67,8 @@ After installation:
 
 1. Right-click the Plasma panel.
 2. Choose `Add Widgets`.
-3. Search for `Fancy Tasks`.
-4. Add it to the panel and open `Configure Fancy Tasks...`.
+3. Search for `FancyTasks Reloaded`.
+4. Add it to the panel and open `Configure FancyTasks Reloaded...`.
 
 ## Updating
 
@@ -104,13 +103,13 @@ This repository includes [`patch-kicker.py`](/home/kombatant/Dev/languages/fancy
 Why it exists:
 
 - Kicker/Kickoff keeps a hardcoded list of task manager plugin IDs.
-- FancyTasks uses `org.kombatant.fancytasks`.
-- Without the patch, launcher menus may not show `Pin to Task Manager` for FancyTasks and window previews when minimizing may not work correctly.
+- FancyTasks Reloaded uses `org.kombatant.fancytasks_rld`.
+- Without the patch, launcher menus may not show `Pin to Task Manager` for FancyTasks Reloaded and window previews when minimizing may not work correctly.
 
 What it does:
 
 - replaces the unused hardcoded string `org.kde.plasma.expandingiconstaskmanager`
-- inserts `org.kombatant.fancytasks`
+- inserts `org.kombatant.fancytasks_rld`
 - updates the embedded string length
 - creates a backup beside the library as `libkickerplugin.so.bak`
 
@@ -154,4 +153,4 @@ Issues, bug reports, and pull requests should go through the GitHub repository:
 
 ## License
 
-FancyTasks is distributed under the GPL. See [`LICENSE`](/home/kombatant/Dev/languages/fancytasks/LICENSE).
+FancyTasks Reloaded is distributed under the GPL. See [`LICENSE`](/home/kombatant/Dev/languages/fancytasks/LICENSE).
