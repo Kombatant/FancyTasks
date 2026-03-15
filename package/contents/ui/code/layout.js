@@ -110,7 +110,7 @@ function layoutHeight() {
 }
 
 function preferredMinWidth() {
-    var width = launcherWidth();
+    var width = launcherBaseWidth();
 
     if (!tasks.vertical && !tasks.iconsOnly) {
       width +=
@@ -194,18 +194,54 @@ function taskHeight() {
 }
 
 function launcherWidth() {
+    refreshConstants();
+    var width = launcherBaseWidth();
+
+    if (!tasks.iconsOnly) {
+        width += labelMargin * 2;
+    }
+
+    return width;
+}
+
+function launcherBaseWidth() {
     var baseWidth = tasks.vertical ? preferredMinHeight() : Math.min(tasks.height, tasks.iconSizeSmall * 3);
 
     if (!tasks.iconsOnly) {
         baseWidth = Math.max(baseWidth, tasks.height);
     }
 
-    return (baseWidth + horizontalMargins())
-        - (adjustMargin(baseWidth, taskFrame.margins.top) + adjustMargin(baseWidth, taskFrame.margins.bottom));
+    var width = launcherInnerWidth(baseWidth) + horizontalMargins();
+
+    if (!tasks.iconsOnly) {
+        width = Math.max(width, launcherIconWidth(baseWidth) + horizontalMargins());
+    }
+
+    return width;
 }
 
 function maximumContextMenuTextWidth() {
     return tasks.defaultFontWidth * 28;
+}
+
+function launcherInnerWidth(baseWidth) {
+    return Math.max(0, baseWidth
+        - adjustMargin(baseWidth, taskFrame.margins.top)
+        - adjustMargin(baseWidth, taskFrame.margins.bottom));
+}
+
+function launcherIconWidth(baseWidth) {
+    const iconWidth = launcherInnerWidth(baseWidth);
+
+    if (tasks.iconsOnly) {
+        return iconWidth;
+    }
+
+    if (plasmoid.configuration.iconSizeOverride) {
+        return plasmoid.configuration.iconSizePx;
+    }
+
+    return iconWidth * (plasmoid.configuration.iconScale / 100);
 }
 
 function layout(container) {

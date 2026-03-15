@@ -1074,7 +1074,9 @@ MouseArea {
             readonly property bool showPreview: featureActive
                                                 && model.IsMinimized === true
                                                 && resolvedWinUuid.length > 0
-            readonly property real badgeSize: Math.min(Math.min(width, height) * 0.36, Kirigami.Units.iconSizes.smallMedium)
+            readonly property real previewInset: Math.max(2, Math.round(Math.min(width, height) * 0.08))
+            readonly property real previewExtent: Math.max(0, Math.min(width, height) - (previewInset * 2))
+            readonly property real badgeSize: Math.min(previewExtent * 0.36, Kirigami.Units.iconSizes.smallMedium)
             readonly property real badgePadding: Math.max(2, Math.round(badgeSize * 0.16))
             property double lastHeartbeat: 0
 
@@ -1125,6 +1127,7 @@ MouseArea {
             Item {
                 id: previewContent
                 anchors.fill: parent
+                anchors.margins: minimizedPreview.previewInset
                 visible: minimizedPreview.showPreview
 
                 transform: [
@@ -1223,15 +1226,15 @@ MouseArea {
                 z: 1
                 width: 0
                 height: 0
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: previewContent.horizontalCenter
+                anchors.bottom: previewContent.bottom
                 anchors.bottomMargin: {
                     // Force re-evaluation when these change
                     var indVisible = indicator.visible
                     var indState = indicator.state
                     var indEnabled = task.customIndicatorsEnabled
                     if (indEnabled && indVisible && indState === "bottom") {
-                        var previewBottomInTask = iconBox.y + minimizedPreview.y + minimizedPreview.height
+                        var previewBottomInTask = iconBox.y + minimizedPreview.y + previewContent.y + previewContent.height
                         var margin = previewBottomInTask + minimizedPreview.badgeSize / 2 - indicator.y + 1
                         return Math.max(0, Math.ceil(margin))
                     }
