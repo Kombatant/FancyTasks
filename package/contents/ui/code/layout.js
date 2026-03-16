@@ -95,17 +95,17 @@ function optimumCapacity(width, height) {
 
 function layoutWidth() {
     if (plasmoid.configuration.forceStripes && !tasks.vertical) {
-        return Math.min(tasks.width - (tasksPerStripe() * plasmoid.configuration.taskSpacingSize), Math.max(preferredMaxWidth(), tasksPerStripe() * preferredMaxWidth())) + tasks.hoverLayoutExtraLength;
+        return Math.min(tasks.width - (tasksPerStripe() * plasmoid.configuration.taskSpacingSize), Math.max(preferredMaxWidth(), tasksPerStripe() * preferredMaxWidth()));
     } else {
-        return tasks.width + (tasks.vertical ? 0 : tasks.hoverLayoutExtraLength);
+        return tasks.width;
     }
 }
 
 function layoutHeight() {
     if (plasmoid.configuration.forceStripes && tasks.vertical) {
-        return Math.min(tasks.height - (tasksPerStripe() * plasmoid.configuration.taskSpacingSize), Math.max(preferredMaxHeight(), tasksPerStripe() * preferredMaxHeight())) + tasks.hoverLayoutExtraLength;
+        return Math.min(tasks.height - (tasksPerStripe() * plasmoid.configuration.taskSpacingSize), Math.max(preferredMaxHeight(), tasksPerStripe() * preferredMaxHeight()));
     } else {
-        return tasks.height + (tasks.vertical ? tasks.hoverLayoutExtraLength : 0);
+        return tasks.height;
     }
 }
 
@@ -288,10 +288,10 @@ function layout(container) {
                     + " IsWindow=" + item.m.IsWindow
                     + " w=" + adjustedWidth + " h=" + height);
 
-        item.baseTaskWidth = adjustedWidth;
-        item.baseTaskHeight = height;
-        item.width = adjustedWidth + (item.hoverLayoutExtraWidth || 0);
-        item.height = height + (item.hoverLayoutExtraHeight || 0);
+        // Keep delegate slots stable while the icon itself animates. The
+        // panel hover budget is handled separately at the container level.
+        item.width = adjustedWidth;
+        item.height = height;
         item.visible = true;
     }
 }

@@ -102,13 +102,8 @@ MouseArea {
     readonly property bool hoverBounceEnabled: hoverEffectsEnabled && hoverEffectMode === 0 && highlighted
     readonly property bool hoverMagnifyEnabled: hoverEffectsEnabled && hoverEffectMode === 1 && !inPopup && tasks.hoverEffectsActive
     readonly property real hoverMagnifyProgress: hoverEffectProgress(icon)
-    property real baseTaskWidth: width
-    property real baseTaskHeight: height
-    readonly property real hoverLayoutExtraWidth: hoverMagnifyEnabled && !tasks.vertical
-        ? Math.max(0, baseTaskWidth * (hoverScaleForItem(icon) - 1))
-        : 0
-    readonly property real hoverLayoutExtraHeight: hoverMagnifyEnabled && tasks.vertical
-        ? Math.max(0, baseTaskHeight * (hoverScaleForItem(icon) - 1))
+    readonly property real hoverMaxPanelThicknessExtra: hoverEffectsEnabled && hoverEffectMode === 1 && !inPopup && icon
+        ? hoverPanelThicknessExtraForProgress(icon, 1)
         : 0
     z: hoverEffectsEnabled ? Math.round((hoverBounceEnabled ? 1 : hoverMagnifyProgress) * 100) : 0
 
@@ -117,9 +112,25 @@ MouseArea {
             return 0;
         }
 
-        const center = item.mapToItem(tasks, item.width / 2, item.height / 2);
         const pointer = tasks.vertical ? tasks.hoverPointerY : tasks.hoverPointerX;
-        const axisCenter = tasks.vertical ? center.y : center.x;
+        return hoverEffectProgressForPointer(item, pointer);
+    }
+
+    function hoverPointerForItem(item) {
+        if (!item) {
+            return 0;
+        }
+
+        const center = item.mapToItem(tasks, item.width / 2, item.height / 2);
+        return tasks.vertical ? center.y : center.x;
+    }
+
+    function hoverEffectProgressForPointer(item, pointer) {
+        if (!item) {
+            return 0;
+        }
+
+        const axisCenter = hoverPointerForItem(item);
         const span = tasks.vertical ? item.height : item.width;
         const influenceRadius = Math.max(span * 2.6, Kirigami.Units.gridUnit * 4);
         const normalized = Math.max(0, 1 - (Math.abs(axisCenter - pointer) / influenceRadius));
@@ -133,6 +144,17 @@ MouseArea {
         }
 
         return 1 + (hoverEffectProgress(item) * 0.5);
+    }
+
+    function hoverPanelThicknessExtraForProgress(item, progress) {
+        if (!item || progress <= 0) {
+            return 0;
+        }
+
+        const span = tasks.vertical ? item.width : item.height;
+        const scaleExtra = span * 0.25 * progress;
+        const offsetExtra = span * 0.32 * progress;
+        return scaleExtra + offsetExtra;
     }
 
     function hoverOffsetForItem(item, axis) {
