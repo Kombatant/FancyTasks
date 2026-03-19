@@ -135,6 +135,57 @@ MouseArea {
         === Kirigami.ColorUtils.Dark
     z: hoverEffectsEnabled ? Math.round((hoverBounceEnabled ? 1 : hoverMagnifyProgress) * 100) : 0
 
+    function iconFrameFillColor(alphaScale) {
+        const accent = task.iconFrameAccentColor;
+        const scale = alphaScale === undefined ? 1 : alphaScale;
+        const hoverAndActiveAlpha = task.darkPanel ? 0.30 : 0.24;
+        const activeAlpha = task.darkPanel ? 0.22 : 0.17;
+        const hoverAlpha = task.darkPanel ? 0.14 : 0.11;
+
+        if (task.iconFrameHovered && task.iconFrameActive) {
+            return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha * scale);
+        }
+
+        if (task.iconFrameActive) {
+            return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha * scale);
+        }
+
+        return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha * scale);
+    }
+
+    function iconFrameBorderColor(alphaScale) {
+        const accent = task.iconFrameAccentColor;
+        const scale = alphaScale === undefined ? 1 : alphaScale;
+        const hoverAndActiveAlpha = task.darkPanel ? 1.0 : 0.98;
+        const activeAlpha = task.darkPanel ? 0.88 : 0.84;
+        const hoverAlpha = task.darkPanel ? 0.72 : 0.68;
+
+        if (task.iconFrameHovered && task.iconFrameActive) {
+            return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha * scale);
+        }
+
+        if (task.iconFrameActive) {
+            return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha * scale);
+        }
+
+        return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha * scale);
+    }
+
+    function iconFrameGlowColor(alphaScale) {
+        const accent = task.iconFrameAccentColor;
+        const scale = alphaScale === undefined ? 1 : alphaScale;
+
+        if (task.iconFrameHovered && task.iconFrameActive) {
+            return Qt.rgba(accent.r, accent.g, accent.b, (task.darkPanel ? 0.40 : 0.24) * scale);
+        }
+
+        if (task.iconFrameActive) {
+            return Qt.rgba(accent.r, accent.g, accent.b, (task.darkPanel ? 0.28 : 0.18) * scale);
+        }
+
+        return Qt.rgba(accent.r, accent.g, accent.b, (task.darkPanel ? 0.16 : 0.11) * scale);
+    }
+
     function hoverEffectProgress(item) {
         if (!hoverMagnifyEnabled || !item) {
             return 0;
@@ -1177,6 +1228,33 @@ MouseArea {
         Item {
             id: icon
             anchors.centerIn: parent
+            readonly property bool groupedFrameStackVisible: task.showStaticIconFrame
+                && model.IsGroupParent === true
+            readonly property real groupedFrameStackOffset: Math.max(3, Math.round(Math.min(width, height) * 0.13))
+
+            function groupedFrameOffset(axis, depth) {
+                const offset = groupedFrameStackOffset * depth;
+
+                if (axis === "x") {
+                    switch (plasmoid.location) {
+                    case PlasmaCore.Types.LeftEdge:
+                        return offset;
+                    case PlasmaCore.Types.RightEdge:
+                        return -offset;
+                    default:
+                        return -Math.round(offset * 0.72);
+                    }
+                }
+
+                switch (plasmoid.location) {
+                case PlasmaCore.Types.TopEdge:
+                    return offset;
+                case PlasmaCore.Types.BottomEdge:
+                    return -offset;
+                default:
+                    return -Math.round(offset * 0.72);
+                }
+            }
 
             width: {
                 let isWider = parent.width > parent.height
@@ -1193,47 +1271,42 @@ MouseArea {
             opacity: minimizedPreview.showPreview ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
 
+            Repeater {
+                model: icon.groupedFrameStackVisible ? 1 : 0
+
+                delegate: Rectangle {
+                    readonly property int stackDepth: index + 1
+
+                    anchors.centerIn: icon
+                    anchors.horizontalCenterOffset: icon.groupedFrameOffset("x", stackDepth)
+                    anchors.verticalCenterOffset: icon.groupedFrameOffset("y", stackDepth)
+                    width: iconFrameOverlay.width
+                    height: iconFrameOverlay.height
+                    radius: iconFrameOverlay.radius
+                    scale: stackDepth === 1 ? 0.98 : 0.95
+                    color: task.iconFrameFillColor(stackDepth === 1 ? 0.92 : 0.72)
+                    border.width: iconFrameOverlay.border.width
+                    border.color: task.iconFrameBorderColor(stackDepth === 1 ? 0.96 : 0.82)
+                    opacity: task.showStaticIconFrame ? 1 : 0
+                    visible: opacity > 0
+
+                    Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                    Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                    Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
+                }
+            }
+
             Rectangle {
                 id: iconFrameOverlay
                 anchors.centerIn: parent
                 width: Math.min(icon.width, parent.width) + Math.max(8, Math.round(icon.width * 0.22))
                 height: Math.min(icon.height, parent.height) + Math.max(8, Math.round(icon.height * 0.22))
                 radius: Math.round(Math.min(width, height) * 0.28)
-                color: {
-                    const accent = task.iconFrameAccentColor;
-                    const hoverAndActiveAlpha = task.darkPanel ? 0.30 : 0.24;
-                    const activeAlpha = task.darkPanel ? 0.22 : 0.17;
-                    const hoverAlpha = task.darkPanel ? 0.14 : 0.11;
-
-                    if (task.iconFrameHovered && task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
-                    }
-
-                    if (task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
-                    }
-
-                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
-                }
+                color: task.iconFrameFillColor()
                 border.width: task.darkPanel
                     ? Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.5))
                     : Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.25))
-                border.color: {
-                    const accent = task.iconFrameAccentColor;
-                    const hoverAndActiveAlpha = task.darkPanel ? 1.0 : 0.98;
-                    const activeAlpha = task.darkPanel ? 0.88 : 0.84;
-                    const hoverAlpha = task.darkPanel ? 0.72 : 0.68;
-
-                    if (task.iconFrameHovered && task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
-                    }
-
-                    if (task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
-                    }
-
-                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
-                }
+                border.color: task.iconFrameBorderColor()
                 opacity: task.showStaticIconFrame ? 1 : 0
                 scale: task.iconFrameHovered ? 1 : 0.97
                 visible: opacity > 0
@@ -1243,19 +1316,7 @@ MouseArea {
                     glowRadius: task.darkPanel ? Math.max(10, Math.round(parent.width * 0.12)) : Math.max(8, Math.round(parent.width * 0.10))
                     spread: task.darkPanel ? 0.22 : 0.18
                     cornerRadius: iconFrameOverlay.radius + glowRadius
-                    color: {
-                        const accent = task.iconFrameAccentColor;
-
-                        if (task.iconFrameHovered && task.iconFrameActive) {
-                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.40 : 0.24);
-                        }
-
-                        if (task.iconFrameActive) {
-                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.28 : 0.18);
-                        }
-
-                        return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.16 : 0.11);
-                    }
+                    color: task.iconFrameGlowColor()
                     visible: task.showStaticIconFrame
                 }
 
@@ -1435,41 +1496,11 @@ MouseArea {
                 width: minimizedPreview.width + Math.max(8, Math.round(minimizedPreview.width * 0.22))
                 height: minimizedPreview.height + Math.max(8, Math.round(minimizedPreview.height * 0.22))
                 radius: Math.round(Math.min(width, height) * 0.28)
-                color: {
-                    const accent = task.iconFrameAccentColor;
-                    const hoverAndActiveAlpha = task.darkPanel ? 0.30 : 0.24;
-                    const activeAlpha = task.darkPanel ? 0.22 : 0.17;
-                    const hoverAlpha = task.darkPanel ? 0.14 : 0.11;
-
-                    if (task.iconFrameHovered && task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
-                    }
-
-                    if (task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
-                    }
-
-                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
-                }
+                color: task.iconFrameFillColor()
                 border.width: task.darkPanel
                     ? Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.5))
                     : Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.25))
-                border.color: {
-                    const accent = task.iconFrameAccentColor;
-                    const hoverAndActiveAlpha = task.darkPanel ? 1.0 : 0.98;
-                    const activeAlpha = task.darkPanel ? 0.88 : 0.84;
-                    const hoverAlpha = task.darkPanel ? 0.72 : 0.68;
-
-                    if (task.iconFrameHovered && task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
-                    }
-
-                    if (task.iconFrameActive) {
-                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
-                    }
-
-                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
-                }
+                border.color: task.iconFrameBorderColor()
                 opacity: task.showStaticIconFrame && minimizedPreview.showPreview ? 1 : 0
                 scale: task.iconFrameHovered ? 1 : 0.97
                 visible: opacity > 0
@@ -1480,19 +1511,7 @@ MouseArea {
                     glowRadius: task.darkPanel ? Math.max(10, Math.round(parent.width * 0.12)) : Math.max(8, Math.round(parent.width * 0.10))
                     spread: task.darkPanel ? 0.22 : 0.18
                     cornerRadius: previewFrameOverlay.radius + glowRadius
-                    color: {
-                        const accent = task.iconFrameAccentColor;
-
-                        if (task.iconFrameHovered && task.iconFrameActive) {
-                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.40 : 0.24);
-                        }
-
-                        if (task.iconFrameActive) {
-                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.28 : 0.18);
-                        }
-
-                        return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.16 : 0.11);
-                    }
+                    color: task.iconFrameGlowColor()
                     visible: task.showStaticIconFrame && minimizedPreview.showPreview
                 }
 
