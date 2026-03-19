@@ -125,6 +125,14 @@ MouseArea {
     readonly property real hoverMaxPanelThicknessExtra: hoverEffectsEnabled && hoverEffectMode === 1 && !inPopup && icon
         ? hoverPanelThicknessExtraForProgress(icon, 1)
         : 0
+    readonly property bool iconFrameModeEnabled: !hoverEffectsEnabled
+    readonly property bool iconFrameHovered: !inPopup && containsMouse
+    readonly property bool iconFrameActive: !inPopup && model.IsActive === true
+    readonly property bool iconFrameVisible: iconFrameModeEnabled && (iconFrameHovered || iconFrameActive)
+    readonly property bool showStaticIconFrame: iconFrameModeEnabled && iconFrameVisible
+    readonly property color iconFrameAccentColor: Kirigami.Theme.highlightColor
+    readonly property bool darkPanel: Kirigami.ColorUtils.brightnessForColor(Kirigami.Theme.backgroundColor)
+        === Kirigami.ColorUtils.Dark
     z: hoverEffectsEnabled ? Math.round((hoverBounceEnabled ? 1 : hoverMagnifyProgress) * 100) : 0
 
     function hoverEffectProgress(item) {
@@ -1184,6 +1192,78 @@ MouseArea {
 
             opacity: minimizedPreview.showPreview ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+
+            Rectangle {
+                id: iconFrameOverlay
+                anchors.centerIn: parent
+                width: Math.min(icon.width, parent.width) + Math.max(8, Math.round(icon.width * 0.22))
+                height: Math.min(icon.height, parent.height) + Math.max(8, Math.round(icon.height * 0.22))
+                radius: Math.round(Math.min(width, height) * 0.28)
+                color: {
+                    const accent = task.iconFrameAccentColor;
+                    const hoverAndActiveAlpha = task.darkPanel ? 0.30 : 0.24;
+                    const activeAlpha = task.darkPanel ? 0.22 : 0.17;
+                    const hoverAlpha = task.darkPanel ? 0.14 : 0.11;
+
+                    if (task.iconFrameHovered && task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
+                    }
+
+                    if (task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
+                    }
+
+                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
+                }
+                border.width: task.darkPanel
+                    ? Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.5))
+                    : Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.25))
+                border.color: {
+                    const accent = task.iconFrameAccentColor;
+                    const hoverAndActiveAlpha = task.darkPanel ? 1.0 : 0.98;
+                    const activeAlpha = task.darkPanel ? 0.88 : 0.84;
+                    const hoverAlpha = task.darkPanel ? 0.72 : 0.68;
+
+                    if (task.iconFrameHovered && task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
+                    }
+
+                    if (task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
+                    }
+
+                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
+                }
+                opacity: task.showStaticIconFrame ? 1 : 0
+                scale: task.iconFrameHovered ? 1 : 0.97
+                visible: opacity > 0
+
+                RectangularGlow {
+                    anchors.fill: parent
+                    glowRadius: task.darkPanel ? Math.max(10, Math.round(parent.width * 0.12)) : Math.max(8, Math.round(parent.width * 0.10))
+                    spread: task.darkPanel ? 0.22 : 0.18
+                    cornerRadius: iconFrameOverlay.radius + glowRadius
+                    color: {
+                        const accent = task.iconFrameAccentColor;
+
+                        if (task.iconFrameHovered && task.iconFrameActive) {
+                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.40 : 0.24);
+                        }
+
+                        if (task.iconFrameActive) {
+                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.28 : 0.18);
+                        }
+
+                        return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.16 : 0.11);
+                    }
+                    visible: task.showStaticIconFrame
+                }
+
+                Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
+            }
+
             transform: [
                 Translate {
                     id: hoverTranslate
@@ -1348,6 +1428,78 @@ MouseArea {
 
             opacity: showPreview ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+
+            Rectangle {
+                id: previewFrameOverlay
+                anchors.centerIn: parent
+                width: minimizedPreview.width + Math.max(8, Math.round(minimizedPreview.width * 0.22))
+                height: minimizedPreview.height + Math.max(8, Math.round(minimizedPreview.height * 0.22))
+                radius: Math.round(Math.min(width, height) * 0.28)
+                color: {
+                    const accent = task.iconFrameAccentColor;
+                    const hoverAndActiveAlpha = task.darkPanel ? 0.30 : 0.24;
+                    const activeAlpha = task.darkPanel ? 0.22 : 0.17;
+                    const hoverAlpha = task.darkPanel ? 0.14 : 0.11;
+
+                    if (task.iconFrameHovered && task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
+                    }
+
+                    if (task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
+                    }
+
+                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
+                }
+                border.width: task.darkPanel
+                    ? Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.5))
+                    : Math.max(2, Math.round(Kirigami.Units.devicePixelRatio * 1.25))
+                border.color: {
+                    const accent = task.iconFrameAccentColor;
+                    const hoverAndActiveAlpha = task.darkPanel ? 1.0 : 0.98;
+                    const activeAlpha = task.darkPanel ? 0.88 : 0.84;
+                    const hoverAlpha = task.darkPanel ? 0.72 : 0.68;
+
+                    if (task.iconFrameHovered && task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, hoverAndActiveAlpha);
+                    }
+
+                    if (task.iconFrameActive) {
+                        return Qt.rgba(accent.r, accent.g, accent.b, activeAlpha);
+                    }
+
+                    return Qt.rgba(accent.r, accent.g, accent.b, hoverAlpha);
+                }
+                opacity: task.showStaticIconFrame && minimizedPreview.showPreview ? 1 : 0
+                scale: task.iconFrameHovered ? 1 : 0.97
+                visible: opacity > 0
+                z: -1
+
+                RectangularGlow {
+                    anchors.fill: parent
+                    glowRadius: task.darkPanel ? Math.max(10, Math.round(parent.width * 0.12)) : Math.max(8, Math.round(parent.width * 0.10))
+                    spread: task.darkPanel ? 0.22 : 0.18
+                    cornerRadius: previewFrameOverlay.radius + glowRadius
+                    color: {
+                        const accent = task.iconFrameAccentColor;
+
+                        if (task.iconFrameHovered && task.iconFrameActive) {
+                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.40 : 0.24);
+                        }
+
+                        if (task.iconFrameActive) {
+                            return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.28 : 0.18);
+                        }
+
+                        return Qt.rgba(accent.r, accent.g, accent.b, task.darkPanel ? 0.16 : 0.11);
+                    }
+                    visible: task.showStaticIconFrame && minimizedPreview.showPreview
+                }
+
+                Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                Behavior on scale { NumberAnimation { duration: Kirigami.Units.shortDuration } }
+                Behavior on color { ColorAnimation { duration: Kirigami.Units.shortDuration } }
+            }
 
             Timer {
                 id: resumeWatchdog
